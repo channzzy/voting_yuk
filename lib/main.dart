@@ -1,11 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:voting_yuk/api/api_service.dart';
 import 'package:voting_yuk/pages/dashboard.dart';
 import 'package:voting_yuk/pages/detail.dart';
+import 'package:voting_yuk/pages/splash_screen.dart';
+import 'package:voting_yuk/providers/candidates.dart';
+import 'package:voting_yuk/providers/chart.dart';
+import 'package:voting_yuk/providers/deail_candidate.dart';
+import 'package:voting_yuk/providers/vote.dart';
 import 'package:voting_yuk/utils/style.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => CandidatesProvider(
+            apiService: ApiService(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => VoteProvider(
+            apiService: ApiService(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => ChartProvider(
+            apiService: ApiService(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => DetailCandidateProvider(
+            apiService: ApiService(),
+          ),
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -28,10 +61,12 @@ class MyApp extends StatelessWidget {
             fontFamily: 'Inter-Regular',
             primarySwatch: primarySwatchColor,
           ),
-          initialRoute: Dashboard.routeName,
+          initialRoute: SplashScreen.routeName,
           routes: {
+            SplashScreen.routeName: (context) => const SplashScreen(),
             Dashboard.routeName: (context) => const Dashboard(),
-            DetailPaslon.routeName: (context) => const DetailPaslon(),
+            DetailPaslon.routeName: (context) => DetailPaslon(
+                id: ModalRoute.of(context)?.settings.arguments as int),
           },
           debugShowCheckedModeBanner: false,
         );

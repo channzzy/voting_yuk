@@ -2,7 +2,11 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:voting_yuk/pages/dashboard.dart';
+import 'package:voting_yuk/providers/vote.dart';
 
+import '../providers/candidates.dart';
 import '../utils/style.dart';
 
 class VotingPage extends StatefulWidget {
@@ -13,6 +17,17 @@ class VotingPage extends StatefulWidget {
 }
 
 class _VotingPageState extends State<VotingPage> {
+  late int candidateId;
+  final TextEditingController _nisController = TextEditingController();
+
+  @override
+  void initState() {
+    Future.microtask(
+      () => context.read<CandidatesProvider>().fetchData(),
+    );
+    super.initState();
+  }
+
   final formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
@@ -49,33 +64,94 @@ class _VotingPageState extends State<VotingPage> {
               ),
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: DropdownSearch<Map<String, dynamic>>(
-                  popupProps: PopupProps.menu(
-                    constraints: BoxConstraints(maxHeight: 180.h),
-                    // showSearchBox: true,
-                  ),
-                  items: [],
-                  // selectedItem: selectedCompetency,
-                  dropdownDecoratorProps: DropDownDecoratorProps(
-                    dropdownSearchDecoration: InputDecoration(
-                      fillColor: const Color(0xFFEAEAEA),
-                      filled: true,
-                      border: InputBorder.none,
-                      errorBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                          color: Colors.red,
-                          width: 1,
+                child: Consumer<CandidatesProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.candidateResult == CandidatesResult.loading) {
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    } else if (provider.candidateResult ==
+                            CandidatesResult.noData ||
+                        provider.candidateResult == CandidatesResult.error) {
+                      return DropdownSearch<Map<String, dynamic>>(
+                        popupProps: PopupProps.menu(
+                          constraints: BoxConstraints(maxHeight: 180.h),
                         ),
-                      ),
-                    ),
-                  ),
-
-                  validator: (value) {
-                    if (value == null) {
-                      return "Tidak Boleh Kosong !";
+                        items: const [],
+                        dropdownDecoratorProps: DropDownDecoratorProps(
+                          dropdownSearchDecoration: InputDecoration(
+                            fillColor: const Color(0xFFEAEAEA),
+                            filled: true,
+                            border: InputBorder.none,
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                color: Colors.red,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null) {
+                            return "Tidak Boleh Kosong !";
+                          }
+                          return null;
+                        },
+                      );
+                    } else if (provider.candidateResult ==
+                        CandidatesResult.hasData) {
+                      return DropdownSearch<Map<String, dynamic>>(
+                        popupProps: PopupProps.menu(
+                          constraints: BoxConstraints(maxHeight: 180.h),
+                        ),
+                        items: provider.candidateList,
+                        // selectedItem: selectedCompetency,
+                        dropdownDecoratorProps: DropDownDecoratorProps(
+                          dropdownSearchDecoration: InputDecoration(
+                            fillColor: const Color(0xFFEAEAEA),
+                            filled: true,
+                            border: InputBorder.none,
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                color: Colors.red,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                        onChanged: (selectedItem) {
+                          candidateId = selectedItem?['id'];
+                        },
+                        dropdownBuilder: (context, item) {
+                          if (item != null) {
+                            String chairman = item['chairman'] ?? '';
+                            String deputyChairman =
+                                item['deputy_chairman'] ?? '';
+                            if (chairman.isNotEmpty &&
+                                deputyChairman.isNotEmpty) {
+                              return Text("$chairman & $deputyChairman");
+                            } else if (chairman.isNotEmpty) {
+                              return Text(chairman);
+                            } else if (deputyChairman.isNotEmpty) {
+                              return Text(deputyChairman);
+                            }
+                          }
+                          return const Text('');
+                        },
+                        itemAsString: (item) =>
+                            item['chairman'] + " & " + item['deputy_chairman'],
+                        validator: (value) {
+                          if (value == null) {
+                            return "Tidak Boleh Kosong !";
+                          }
+                          return null;
+                        },
+                      );
+                    } else {
+                      return const Text('');
                     }
-                    return null;
                   },
                 ),
               ),
@@ -94,6 +170,7 @@ class _VotingPageState extends State<VotingPage> {
                 height: 10.h,
               ),
               TextFormField(
+                controller: _nisController,
                 validator: (value) {
                   if (value!.isEmpty) {
                     return 'Tidak Boleh Kosong !';
@@ -122,21 +199,70 @@ class _VotingPageState extends State<VotingPage> {
               SizedBox(
                 height: 10.h,
               ),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  textStyle: TextStyle(
-                    fontSize: 14.sp,
-                    color: Colors.white,
-                  ),
-                  fixedSize: Size(330.w, 40.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: const Text(
-                  'Kirim Voting',
-                ),
+              Consumer<VoteProvider>(
+                builder: (context, send, _) {
+                  if (send.voteResult == VoteResult.loading) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  } else {
+                    return ElevatedButton(
+                      onPressed: () async {
+                        if (formKey.currentState!.validate()) {
+                          await send.sendVote(_nisController.text, candidateId);
+                          if (send.voteResult == VoteResult.error) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: Colors.red,
+                                content: Text(
+                                  'Gagal karena ${send.errorMessage}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
+                          } else if (send.voteResult == VoteResult.success) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) {
+                                  return Dashboard();
+                                },
+                              ),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: accentColor,
+                                content: Text(
+                                  'Voting Berhasil Dikirim',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        textStyle: TextStyle(
+                          fontSize: 14.sp,
+                          color: Colors.white,
+                        ),
+                        fixedSize: Size(330.w, 40.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Kirim Voting',
+                      ),
+                    );
+                  }
+                },
               ),
               SizedBox(
                 height: 10.h,
