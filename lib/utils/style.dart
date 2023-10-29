@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 Color backgroundColor = const Color(0xFFF7F7F7);
-Color primaryColor = const Color(0xFF393E46);
-Color accentColor = const Color(0xFF6D9886);
+Color primaryColor = const Color(0xFF192655);
+Color fontColor = const Color(0xFF393E46);
+// Color accentColor = const Color(0xFF6D9886);
+Color accentColor = const Color(0xFFE55604);
 Color cardColor = const Color(0xFFD9D9D9);
 
 const svgLogout =

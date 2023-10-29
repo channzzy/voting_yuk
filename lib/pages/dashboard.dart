@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
 import 'package:voting_yuk/pages/detail.dart';
 import 'package:voting_yuk/pages/information.dart';
 import 'package:voting_yuk/pages/voting.dart';
+import 'package:voting_yuk/providers/candidates.dart';
 import 'package:voting_yuk/utils/style.dart';
 
 class Dashboard extends StatefulWidget {
-  static const routeName = "/";
+  static const routeName = "/dashboard";
   const Dashboard({Key? key}) : super(key: key);
 
   @override
@@ -16,6 +18,14 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
+  @override
+  void initState() {
+    Future.microtask(
+      () => context.read<CandidatesProvider>().fetchData(),
+    );
+    super.initState();
+  }
+
   final int itemCount = 3;
   @override
   Widget build(BuildContext context) {
@@ -25,6 +35,7 @@ class _DashboardState extends State<Dashboard> {
         backgroundColor: backgroundColor,
         elevation: 0,
         leading: Container(
+          padding: EdgeInsets.all(5.w),
           margin: EdgeInsets.only(top: 6.w, left: 10.w, bottom: 6.w),
           width: 49.w,
           height: 49.h,
@@ -32,9 +43,12 @@ class _DashboardState extends State<Dashboard> {
             color: cardColor,
             borderRadius: BorderRadius.circular(15),
           ),
+          child: Image.asset(
+            'assets/images/logo.png',
+          ),
         ),
         title: Text(
-          "Voting Yuk",
+          "E-VOTE",
           style: TextStyle(
             fontSize: 20.sp,
             color: const Color(0xFF393E46),
@@ -94,7 +108,9 @@ class _DashboardState extends State<Dashboard> {
                                 fontSize: 13.sp,
                               ),
                             ),
-                            onPressed: () async {},
+                            onPressed: () {
+                              SystemNavigator.pop();
+                            },
                           ),
                         ],
                       )
@@ -125,187 +141,266 @@ class _DashboardState extends State<Dashboard> {
           top: 20.w,
           bottom: 10.w,
         ),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(20.w),
-              decoration: BoxDecoration(
-                color: primaryColor,
-                borderRadius: BorderRadius.circular(15.w),
-              ),
-              width: double.infinity,
-              height: 112,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+        child: Consumer<CandidatesProvider>(
+          builder: (context, provider, _) {
+            if (provider.candidateResult == CandidatesResult.loading) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            } else if (provider.candidateResult == CandidatesResult.noData) {
+              return Center(
+                child: Text(provider.errorMessage),
+              );
+            } else if (provider.candidateResult == CandidatesResult.error) {
+              return Center(
+                child: Text(provider.errorMessage),
+              );
+            } else if (provider.candidateResult == CandidatesResult.hasData) {
+              return Column(
                 children: [
-                  Text(
-                    "Gunakan hak pilih anda dengan bijak",
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontFamily: bold,
-                      color: Colors.white,
+                  Container(
+                    padding: EdgeInsets.all(20.w),
+                    decoration: BoxDecoration(
+                      color: primaryColor,
+                      borderRadius: BorderRadius.circular(15.w),
+                    ),
+                    width: double.infinity,
+                    height: 112,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Gunakan hak pilih anda dengan bijak",
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontFamily: bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          "dan pertimbangkan calon dengan",
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontFamily: bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          "cermat",
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontFamily: bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    "dan pertimbangkan calon dengan",
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontFamily: bold,
-                      color: Colors.white,
-                    ),
+                  SizedBox(
+                    height: 10.h,
                   ),
-                  Text(
-                    "cermat",
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontFamily: bold,
-                      color: Colors.white,
+                  Expanded(
+                    child: ListView.separated(
+                      itemBuilder: (context, index) {
+                        var candidate = provider.candidate.data[index];
+                        return Column(
+                          children: [
+                            Stack(
+                              alignment: Alignment.bottomCenter,
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: 10.w,
+                                    horizontal: 20.w,
+                                  ),
+                                  width: double.infinity,
+                                  height: 283.h,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEAEAEA),
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        color: cardColor,
+                                        width: 115.w,
+                                        height: 137.h,
+                                        child: Image.network(
+                                          candidate.photoChairman,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      Container(
+                                        color: cardColor,
+                                        width: 115.w,
+                                        height: 137.h,
+                                        child: Image.network(
+                                          candidate.photoDeputyChairman,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: EdgeInsets.all(15.w),
+                                  width: double.infinity,
+                                  height: 120.h,
+                                  decoration: BoxDecoration(
+                                    color: primaryColor,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(0),
+                                      topRight: Radius.circular(0),
+                                      bottomLeft: Radius.circular(15),
+                                      bottomRight: Radius.circular(15),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        candidate.chairman,
+                                        style: TextStyle(
+                                          fontFamily: bold,
+                                          fontSize: 16.sp,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      Text(
+                                        candidate.deputyChairman,
+                                        style: TextStyle(
+                                          fontFamily: bold,
+                                          fontSize: 16.sp,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height: 10.h,
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.pushNamed(
+                                            context,
+                                            DetailPaslon.routeName,
+                                            arguments: candidate.id,
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          textStyle: TextStyle(
+                                            fontSize: 14.sp,
+                                            color: Colors.white,
+                                          ),
+                                          fixedSize: Size(188.w, 32.h),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Detail Paslon',
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(
+                              height: 10.h,
+                            ),
+                            Visibility(
+                              visible:
+                                  index == provider.candidate.data.length - 1
+                                      ? true
+                                      : false,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  provider.candidate.canVote == true
+                                      ? Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const VotingPage(),
+                                          ),
+                                        )
+                                      : showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: Text(
+                                                'Jadwal Voting Belum Dimulai',
+                                                style: TextStyle(
+                                                  fontSize: 16.sp,
+                                                ),
+                                              ),
+                                              content: Text(
+                                                'Silahkan tunggu sesuai dengan jadwal yang disediakan !',
+                                                style:
+                                                    TextStyle(fontSize: 13.sp),
+                                              ),
+                                              actions: <Widget>[
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  children: [
+                                                    TextButton(
+                                                      child: Text(
+                                                        'Ok',
+                                                        style: TextStyle(
+                                                          fontSize: 13.sp,
+                                                        ),
+                                                      ),
+                                                      onPressed: () {
+                                                        Navigator.pop(context);
+                                                      },
+                                                    ),
+                                                  ],
+                                                )
+                                              ],
+                                            );
+                                          },
+                                        );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  textStyle: TextStyle(
+                                    fontSize: 14.sp,
+                                    color: Colors.white,
+                                  ),
+                                  fixedSize: Size(330.w, 40.h),
+                                  backgroundColor:
+                                      provider.candidate.canVote == true
+                                          ? accentColor
+                                          : accentColor.withOpacity(0.5),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Voting Sekarang',
+                                ),
+                              ),
+                            )
+                          ],
+                        );
+                      },
+                      separatorBuilder: (context, index) {
+                        return SizedBox(
+                          height: 10.h,
+                        );
+                      },
+                      itemCount: provider.candidate.data.length,
                     ),
                   ),
                 ],
-              ),
-            ),
-            SizedBox(
-              height: 10.h,
-            ),
-            Expanded(
-              child: ListView.separated(
-                itemBuilder: (context, index) {
-                  return Column(
-                    children: [
-                      Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              vertical: 10.w,
-                              horizontal: 20.w,
-                            ),
-                            width: double.infinity,
-                            height: 283.h,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEAEAEA),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  color: cardColor,
-                                  width: 115.w,
-                                  height: 137.h,
-                                ),
-                                Container(
-                                  color: cardColor,
-                                  width: 115.w,
-                                  height: 137.h,
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.all(15.w),
-                            width: double.infinity,
-                            height: 120.h,
-                            decoration: BoxDecoration(
-                              color: primaryColor,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(0),
-                                topRight: Radius.circular(0),
-                                bottomLeft: Radius.circular(15),
-                                bottomRight: Radius.circular(15),
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  'Chandra Ardiansyah',
-                                  style: TextStyle(
-                                    fontFamily: bold,
-                                    fontSize: 16.sp,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  'M.Rizky Firdaus',
-                                  style: TextStyle(
-                                    fontFamily: bold,
-                                    fontSize: 16.sp,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 10.h,
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.pushNamed(
-                                      context,
-                                      DetailPaslon.routeName,
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    textStyle: TextStyle(
-                                      fontSize: 14.sp,
-                                      color: Colors.white,
-                                    ),
-                                    fixedSize: Size(188.w, 32.h),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Detail Paslon',
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(
-                        height: 10.h,
-                      ),
-                      Visibility(
-                        visible: index == itemCount - 1 ? true : false,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const VotingPage(),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            textStyle: TextStyle(
-                              fontSize: 14.sp,
-                              color: Colors.white,
-                            ),
-                            fixedSize: Size(330.w, 40.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text(
-                            'Halaman Selanjutnya',
-                          ),
-                        ),
-                      )
-                    ],
-                  );
-                },
-                separatorBuilder: (context, index) {
-                  return SizedBox(
-                    height: 10.h,
-                  );
-                },
-                itemCount: itemCount,
-              ),
-            ),
-          ],
+              );
+            } else {
+              return const Text('');
+            }
+          },
         ),
       ),
     );

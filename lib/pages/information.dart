@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:voting_yuk/models/chart.dart';
+import 'package:voting_yuk/providers/chart.dart';
 
 import '../utils/style.dart';
 
@@ -13,6 +17,14 @@ class Information extends StatefulWidget {
 
 class _InformationState extends State<Information> {
   @override
+  void initState() {
+    Future.microtask(
+      () => context.read<ChartProvider>().fetchData(),
+    );
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -24,14 +36,14 @@ class _InformationState extends State<Information> {
           onPressed: () => Navigator.pop(context),
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: primaryColor,
+            color: fontColor,
           ),
         ),
         title: Text(
           "Grafik Paslon",
           style: TextStyle(
             fontSize: 16.sp,
-            color: const Color(0xFF393E46),
+            color: fontColor,
             fontFamily: bold,
           ),
         ),
@@ -43,8 +55,43 @@ class _InformationState extends State<Information> {
       ),
       body: Container(
         padding: const EdgeInsets.all(10.0),
-        child: Column(
-          children: [],
+        child: Consumer<ChartProvider>(
+          builder: (context, chart, _) {
+            if (chart.chartResult == ChartResult.loading) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            } else if (chart.chartResult == ChartResult.error) {
+              return Center(
+                child: Text(chart.errorMessage),
+              );
+            } else if (chart.chartResult == ChartResult.noData) {
+              return Center(
+                child: Text(chart.errorMessage),
+              );
+            } else if (chart.chartResult == ChartResult.hasData) {
+              return Column(
+                children: [
+                  SfCartesianChart(
+                    primaryXAxis: CategoryAxis(),
+                    tooltipBehavior: TooltipBehavior(enable: true),
+                    series: <ChartSeries<Data, String>>[
+                      LineSeries<Data, String>(
+                        color: accentColor,
+                        dataSource: chart.chart.data,
+                        xValueMapper: (Data data, _) =>
+                            "Paslon ${data.sequence}",
+                        yValueMapper: (Data data, _) => data.count,
+                        name: 'Paslon',
+                      )
+                    ],
+                  ),
+                ],
+              );
+            } else {
+              return const Text('');
+            }
+          },
         ),
       ),
     );
